@@ -40,8 +40,10 @@ contract SupplyChain {
     event LogSold(uint sku);
 
   // <LogShipped event: sku arg>
+    event LogShipped(uint sku);
 
   // <LogReceived event: sku arg>
+    event LogReceived(uint sku);
 
 
   /*
@@ -83,12 +85,24 @@ contract SupplyChain {
   // an Item has been added?
 
   modifier forSale(uint _sku) {
-    require(items[_sku].state == State.ForSale && items[_sku].price > 0, "Item is not for sale");
+    require(items[_sku].state == State.ForSale && items[_sku].price > 0);
      _;
   }
-  // modifier sold(uint _sku)
-  // modifier shipped(uint _sku)
-  // modifier received(uint _sku)
+
+  modifier sold(uint _sku) {
+      require(items[_sku].state == State.Sold);
+      _;
+  }
+
+  modifier shipped(uint _sku) {
+      require(items[_sku].state == State.Sold);
+      _;
+  }
+
+  modifier received(uint256 _sku) {
+    require(items[_sku].state == State.Received);
+    _;
+  }
 
   constructor() {
     // 1. Set the owner to the transaction sender
@@ -137,18 +151,24 @@ contract SupplyChain {
   }
 
   // 1. Add modifiers to check:
-  //    - the item is sold already
-  //    - the person calling this function is the seller.
+  //    - the item is sold already (sold)
+  //    - the person calling this function is the seller. (verify caller)
   // 2. Change the state of the item to shipped.
   // 3. call the event associated with this function!
-  function shipItem(uint sku) public {}
+  function shipItem(uint sku) public verifyCaller(items[sku].seller) sold(sku) {
+      items[sku].state = State.Shipped;
+      emit LogShipped(sku);
+  }
 
   // 1. Add modifiers to check
   //    - the item is shipped already
   //    - the person calling this function is the buyer.
   // 2. Change the state of the item to received.
   // 3. Call the event associated with this function!
-  function receiveItem(uint sku) public {}
+  function receiveItem(uint sku) public shipped(sku) verifyCaller(items[sku].buyer) {
+    items[sku].state = State.Received;
+    emit LogReceived(sku);
+  }
 
   // Uncomment the following code block. it is needed to run tests
     function fetchItem(uint _sku) public view
